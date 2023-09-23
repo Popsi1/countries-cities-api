@@ -1,5 +1,7 @@
 package com.klasha.enums;
 
+import com.klasha.exception.ResourceNotFoundException;
+
 public enum ExchangeRate {
 
     EURTONGN("EUR", "NGN", 493.06),
@@ -47,9 +49,7 @@ public enum ExchangeRate {
         for (ExchangeRate response : values()) {
             if (response.getSourceCurrency().equals(sourceCurrency) && response.getTargetCurrency().equals(targetCurrency))
                 return response.getRate();
-        }
-
-        return 1;
+        } throw new ResourceNotFoundException("Exchange rate not found");
     }
 
 

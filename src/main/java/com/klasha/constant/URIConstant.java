@@ -1,7 +1,6 @@
 package com.klasha.constant;
 
 public class URIConstant {
-    public static  final String POPULATION_FILTER = "/population/filter";
     public static  final String POPULATION_CITIES_FILTER = "/population/cities/filter";
 
     public static  final String POPULATION_COUNTRY_FILTER = "/population";
@@ -15,5 +14,4 @@ public class URIConstant {
     public static  final String COUNTRY_STATE = "/states";
 
     public static  final String COUNTRY_STATE_CITIES = "/state/cities";
-    public static  final String CITIES = "/population/cities";
 }
