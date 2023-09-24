@@ -3,7 +3,7 @@ package com.klasha.service.state;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.resquestDto.FilterCountry;
 import com.klasha.dto.responseDto.state.StateResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +26,9 @@ public class StateServiceImpl implements StateService {
     private String baseUrl;
 
     @Nullable
-    public BaseResponse<StateResponse> getStates(FilterCountry filterCountry) {
+    public HttpBaseResponse<StateResponse> getStates(FilterCountry filterCountry) {
         final String url =  baseUrl + URIConstant.COUNTRY_STATE;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
@@ -36,7 +36,7 @@ public class StateServiceImpl implements StateService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<StateResponse>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<StateResponse>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

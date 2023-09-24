@@ -3,13 +3,15 @@ package com.klasha.service.population;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.ApiDataResponseDto;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.responseDto.population.CountryPopulationCount;
 import com.klasha.dto.resquestDto.FilterCountry;
 import com.klasha.dto.responseDto.population.FilterPopulationResponse;
 import com.klasha.dto.responseDto.population.GetCountryPopulation;
 import com.klasha.dto.resquestDto.population.FilterPopulation;
 import com.klasha.exception.BadRequestException;
+import com.klasha.utils.DataResponseUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -30,13 +33,15 @@ public class PopulationServiceImpl implements PopulationService {
     @Value("${base-url}")
     private String baseUrl;
 
-    public Map<String, List<String>> getCountryCities(int numberOfCities) {
+    public ApiDataResponseDto getCountryCities(int numberOfCities) {
 
-        return new HashMap<String, List<String>>() {{
+        ConcurrentHashMap<String, List<String>> result = new ConcurrentHashMap<String, List<String>>() {{
             put("Italy", italyMostPopulatedCities(numberOfCities));
             put("New Zealand", newZealandMostPopulatedCities(numberOfCities));
             put("Ghana", ghanaMostPopulatedCities(numberOfCities));
         }};
+
+        return DataResponseUtils.successResponse("Cities successfully retrieved", result);
     }
 
     public List<String> italyMostPopulatedCities(int numberOfCities){
@@ -60,9 +65,13 @@ public class PopulationServiceImpl implements PopulationService {
         filterPopulation.setOrderBy("value");
         filterPopulation.setCountry(country);
 
-        BaseResponse<List<FilterPopulationResponse>> filterPopulations = filterPopulation(filterPopulation);
+        HttpBaseResponse<List<FilterPopulationResponse>> filterPopulations = filterPopulation(filterPopulation);
         assert filterPopulations != null;
-        if (ObjectUtils.isEmpty(filterPopulations.getData())) throw new BadRequestException("Failed to fetch");
+        if (filterPopulations.isError() || ObjectUtils.isEmpty(filterPopulations.getData())){
+            log.error("filter population error message :: {}", filterPopulations.getMsg());
+            throw new BadRequestException("Failed to fetch " + country + " most populated cities");
+        }
+
         for (FilterPopulationResponse filterPopulationResponse : filterPopulations.getData()) {
             cities.add(filterPopulationResponse.getCity());
         }
@@ -71,7 +80,7 @@ public class PopulationServiceImpl implements PopulationService {
     }
 
     @Nullable
-    public BaseResponse<List<FilterPopulationResponse>> filterPopulation(FilterPopulation filterPopulation) {
+    public HttpBaseResponse<List<FilterPopulationResponse>> filterPopulation(FilterPopulation filterPopulation) {
         final String url =  baseUrl + URIConstant.POPULATION_CITIES_FILTER;
         try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
@@ -80,7 +89,7 @@ public class PopulationServiceImpl implements PopulationService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<List<FilterPopulationResponse>>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<List<FilterPopulationResponse>>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());
@@ -89,17 +98,21 @@ public class PopulationServiceImpl implements PopulationService {
     }
 
     public int getCurrentPopulation(FilterCountry filterCountry){
-        BaseResponse<GetCountryPopulation> populations = getCountryPopulation(filterCountry);
+        HttpBaseResponse<GetCountryPopulation> populations = getCountryPopulation(filterCountry);
         assert populations != null;
-        if (ObjectUtils.isEmpty(populations.getData())) throw new BadRequestException("Failed to fetch");
+        if (populations.isError() || ObjectUtils.isEmpty(populations.getData())) {
+            log.error("get country population error message :: {}", populations.getMsg());
+            throw new BadRequestException("Failed to fetch " + filterCountry.getCountry() + " current population");
+        }
+
         List<CountryPopulationCount> populationCounts = populations.getData().getPopulationCounts();
         return populationCounts.get(populationCounts.size() - 1).getValue();
     }
 
     @Nullable
-    public BaseResponse<GetCountryPopulation> getCountryPopulation(FilterCountry filterCountry) {
+    public HttpBaseResponse<GetCountryPopulation> getCountryPopulation(FilterCountry filterCountry) {
         final String url =  baseUrl + URIConstant.POPULATION_COUNTRY_FILTER;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
@@ -107,7 +120,7 @@ public class PopulationServiceImpl implements PopulationService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<GetCountryPopulation>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<GetCountryPopulation>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

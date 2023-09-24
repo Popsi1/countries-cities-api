@@ -3,7 +3,7 @@ package com.klasha.service.city;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.resquestDto.city.CityRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +26,9 @@ public class CityServiceImpl implements CityService {
     private String baseUrl;
 
     @Nullable
-    public BaseResponse<List<String>> getCities(CityRequest cityRequest) {
+    public HttpBaseResponse<List<String>> getCities(CityRequest cityRequest) {
         final String url =  baseUrl + URIConstant.COUNTRY_STATE_CITIES;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(cityRequest), ""),
                 cityRequest,
@@ -36,7 +36,7 @@ public class CityServiceImpl implements CityService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<List<String>>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<List<String>>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

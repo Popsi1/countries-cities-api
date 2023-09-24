@@ -3,7 +3,7 @@ package com.klasha.service.currency;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.responseDto.currency.CurrencyResponse;
 import com.klasha.dto.resquestDto.FilterCountry;
 import com.klasha.exception.BadRequestException;
@@ -28,16 +28,20 @@ public class CurrencyServiceImpl implements CurrencyService {
     private String baseUrl;
 
     public String getCurrency(FilterCountry filterCountry){
-        BaseResponse<CurrencyResponse> currency = getCountryCurrency(filterCountry);
+        HttpBaseResponse<CurrencyResponse> currency = getCountryCurrency(filterCountry);
         assert currency != null;
-        if (ObjectUtils.isEmpty(currency.getData())) throw new BadRequestException("Failed to fetch");
+        if (currency.isError() || ObjectUtils.isEmpty(currency.getData())) {
+            log.error("get currency error message :: {}", currency.getMsg());
+            throw new BadRequestException("Failed to fetch " + filterCountry.getCountry() + " currency");
+        }
+
         return currency.getData().getCurrency();
     }
 
     @Nullable
-    public BaseResponse<CurrencyResponse> getCountryCurrency(FilterCountry filterCountry) {
+    public HttpBaseResponse<CurrencyResponse> getCountryCurrency(FilterCountry filterCountry) {
         final String url =  baseUrl + URIConstant.COUNTRY_CURRENCY_FILTER;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
@@ -45,7 +49,7 @@ public class CurrencyServiceImpl implements CurrencyService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<CurrencyResponse>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<CurrencyResponse>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

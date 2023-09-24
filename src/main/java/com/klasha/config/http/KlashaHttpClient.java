@@ -8,10 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,19 +41,18 @@ public class KlashaHttpClient {
                .add("limit", String.valueOf(filterPopulation.getLimit())).add("order", filterPopulation.getOrder())
                .add("orderBy", filterPopulation.getOrderBy());
 
-       form.forEach(builder::addEncoded);
-
-        Request request = new Request.Builder().post(builder.build())
-                .headers(Headers.of(headerList)).url(url).build();
-        log.info("--> Request :: {}", request);
-        log.info("--> Request Body :: {}", request.body());
-        return okHttpClient.newCall(request).execute();
+        return getResponse(headerList, form, url, builder);
     }
 
-    public Response postFormParam(Map<String, String> headerList, Map<String, String>  form, String param, String url) throws IOException {
+    public Response postForm(Map<String, String> headerList, Map<String, String>  form, String param, String url) throws IOException {
         log.info("Making POST request with header {}, jsonPayload {} and url {}", headerList, form, url);
         final FormBody.Builder builder = new FormBody.Builder().add("country",param);
 
+        return getResponse(headerList, form, url, builder);
+    }
+
+    @NotNull
+    private Response getResponse(Map<String, String> headerList, Map<String, String> form, String url, FormBody.Builder builder) throws IOException {
         form.forEach(builder::addEncoded);
 
         Request request = new Request.Builder().post(builder.build())
@@ -63,17 +62,11 @@ public class KlashaHttpClient {
         return okHttpClient.newCall(request).execute();
     }
 
-    public Response postFormParam(Map<String, String> headerList, Map<String, String>  form, CityRequest cityRequest, String url) throws IOException {
+    public Response postForm(Map<String, String> headerList, Map<String, String>  form, CityRequest cityRequest, String url) throws IOException {
         log.info("Making POST request with header {}, jsonPayload {} and url {}", headerList, form, url);
         final FormBody.Builder builder = new FormBody.Builder().add("country",cityRequest.getCountry()).add("state", cityRequest.getState());
 
-        form.forEach(builder::addEncoded);
-
-        Request request = new Request.Builder().post(builder.build())
-                .headers(Headers.of(headerList)).url(url).build();
-        log.info("--> Request :: {}", request);
-        log.info("--> Request Body :: {}", request.body());
-        return okHttpClient.newCall(request).execute();
+        return getResponse(headerList, form, url, builder);
     }
 
     @SneakyThrows

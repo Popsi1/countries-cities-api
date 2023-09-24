@@ -3,7 +3,7 @@ package com.klasha.service.capital;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.responseDto.capital.CapitalResponse;
 import com.klasha.dto.resquestDto.FilterCountry;
 import com.klasha.exception.BadRequestException;
@@ -28,16 +28,20 @@ public class CapitalServiceImpl implements CapitalService {
     private String baseUrl;
 
     public CapitalResponse getCapitalCity(FilterCountry filterCountry){
-        BaseResponse<CapitalResponse> capitalCity = getCountryCapital(filterCountry);
+        HttpBaseResponse<CapitalResponse> capitalCity = getCountryCapital(filterCountry);
         assert capitalCity != null;
-        if (ObjectUtils.isEmpty(capitalCity.getData())) throw new BadRequestException("Failed to fetch");
+        if (capitalCity.isError() || ObjectUtils.isEmpty(capitalCity.getData())) {
+            log.error("get capital error message :: {}", capitalCity.getMsg());
+            throw new BadRequestException("Failed to fetch " + filterCountry.getCountry() + " capital");
+        }
+
         return capitalCity.getData();
     }
 
     @Nullable
-    public BaseResponse<CapitalResponse> getCountryCapital(FilterCountry filterCountry) {
+    public HttpBaseResponse<CapitalResponse> getCountryCapital(FilterCountry filterCountry) {
         final String url =  baseUrl + URIConstant.COUNTRY_CAPITAL_FILTER;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
@@ -45,7 +49,7 @@ public class CapitalServiceImpl implements CapitalService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<CapitalResponse>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<CapitalResponse>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

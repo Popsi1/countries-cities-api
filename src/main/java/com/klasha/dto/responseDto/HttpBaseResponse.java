@@ -1,13 +1,15 @@
 package com.klasha.dto.responseDto;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class CurrencyConversionResponse {
-    private String targetCurrency;
-    private double amountConverted;
+@AllArgsConstructor
+public class HttpBaseResponse<T> {
+    private boolean error;
+    private String msg;
+    private  T data;
 }

@@ -4,14 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.resquestDto.FilterCountry;
+import com.klasha.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import java.util.Collections;
 
@@ -26,8 +28,13 @@ public class LocationServiceImpl implements LocationService {
     private String baseUrl;
 
     public String getLocation(FilterCountry filterCountry) throws JsonProcessingException {
-        BaseResponse<Object> countryLocation = getCountryLocation(filterCountry);
+        HttpBaseResponse<Object> countryLocation = getCountryLocation(filterCountry);
         assert countryLocation != null;
+        if (countryLocation.isError() || ObjectUtils.isEmpty(countryLocation.getData())){
+            log.error("get country location error message :: {}", countryLocation.getMsg());
+            throw new BadRequestException("Failed to fetch " + filterCountry.getCountry() + " location");
+        }
+
         return parseLocation(countryLocation.getData());
     }
 
@@ -39,9 +46,9 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Nullable
-    public BaseResponse<Object> getCountryLocation(FilterCountry filterCountry) {
+    public HttpBaseResponse<Object> getCountryLocation(FilterCountry filterCountry) {
         final String url =  baseUrl + URIConstant.LOCATION_COUNTRY_FILTER;
-        try (Response response = httpClient.postFormParam(
+        try (Response response = httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
@@ -49,7 +56,7 @@ public class LocationServiceImpl implements LocationService {
             assert response.body() != null;
             final String json = response.body().string();
             log.info("--> Response :: {}", json);
-            return httpClient.toPojo(json, new TypeReference<BaseResponse<Object>>() {
+            return httpClient.toPojo(json, new TypeReference<HttpBaseResponse<Object>>() {
             });
         } catch (Exception e) {
             log.error("Remote exception :: {}", e.getMessage());

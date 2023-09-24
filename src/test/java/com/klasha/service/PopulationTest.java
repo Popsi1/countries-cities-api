@@ -3,7 +3,7 @@ package com.klasha.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.klasha.config.http.KlashaHttpClient;
 import com.klasha.constant.URIConstant;
-import com.klasha.dto.responseDto.BaseResponse;
+import com.klasha.dto.responseDto.HttpBaseResponse;
 import com.klasha.dto.responseDto.population.CountryPopulationCount;
 import com.klasha.dto.responseDto.population.FilterPopulationResponse;
 import com.klasha.dto.responseDto.population.GetCountryPopulation;
@@ -38,7 +38,7 @@ public class PopulationTest {
     @Mock
     private KlashaHttpClient httpClient;
 
-    BaseResponse<GetCountryPopulation> baseResponse;
+    HttpBaseResponse<GetCountryPopulation> httpBaseResponse;
 
 
     @Value("${base-url}")
@@ -64,10 +64,10 @@ public class PopulationTest {
         getCountryPopulation.setIso3("NGA");
         getCountryPopulation.setPopulationCounts(countryPopulationCounts);
 
-        baseResponse = new BaseResponse<>();
-        baseResponse.setError(false);
-        baseResponse.setMsg("Nigeria with population");
-        baseResponse.setData(getCountryPopulation);
+        httpBaseResponse = new HttpBaseResponse<>();
+        httpBaseResponse.setError(false);
+        httpBaseResponse.setMsg("Nigeria with population");
+        httpBaseResponse.setData(getCountryPopulation);
 
     }
 
@@ -87,17 +87,17 @@ public class PopulationTest {
                 .code(200)
                 .message("OK")
                 .header("Content-Type", "application/json")
-                .body(ResponseBody.create(MediaType.parse("application/json"), String.valueOf(baseResponse)))
+                .body(ResponseBody.create(MediaType.parse("application/json"), String.valueOf(httpBaseResponse)))
                 .build();
 
-        when(httpClient.postFormParam(
+        when(httpClient.postForm(
                 Collections.singletonMap("ContentType", "application/x-www-form-urlencoded"),
                 Collections.singletonMap(httpClient.toJson(filterCountry), ""),
                 filterCountry.getCountry(),
                 url)).thenReturn(response);
 
 
-        when(httpClient.toPojo(any(),  any(TypeReference.class))).thenReturn(baseResponse);
+        when(httpClient.toPojo(any(),  any(TypeReference.class))).thenReturn(httpBaseResponse);
 
         int population = populationService.getCurrentPopulation(filterCountry);
 
@@ -135,10 +135,10 @@ public class PopulationTest {
 
         List<FilterPopulationResponse> filterPopulationResponses = new ArrayList<>(List.of(filterPopulationResponse1, filterPopulationResponse2));
 
-        BaseResponse<List<FilterPopulationResponse>> baseResponse = new BaseResponse<>();
-        baseResponse.setError(false);
-        baseResponse.setMsg("filtered result");
-        baseResponse.setData(filterPopulationResponses);
+        HttpBaseResponse<List<FilterPopulationResponse>> httpBaseResponse = new HttpBaseResponse<>();
+        httpBaseResponse.setError(false);
+        httpBaseResponse.setMsg("filtered result");
+        httpBaseResponse.setData(filterPopulationResponses);
 
         Response response = new Response.Builder()
                 .request(new Request.Builder()
@@ -148,7 +148,7 @@ public class PopulationTest {
                 .code(200)
                 .message("OK")
                 .header("Content-Type", "application/json")
-                .body(ResponseBody.create(MediaType.parse("application/json"), String.valueOf(baseResponse)))
+                .body(ResponseBody.create(MediaType.parse("application/json"), String.valueOf(httpBaseResponse)))
                 .build();
 
         when(httpClient.postForm(
@@ -157,7 +157,7 @@ public class PopulationTest {
                 url)).thenReturn(response);
 
 
-        when(httpClient.toPojo(any(),  any(TypeReference.class))).thenReturn(baseResponse);
+        when(httpClient.toPojo(any(),  any(TypeReference.class))).thenReturn(httpBaseResponse);
 
         List<String> population = populationService.getMostPopulatedCities(2,"Nigeria");
 
